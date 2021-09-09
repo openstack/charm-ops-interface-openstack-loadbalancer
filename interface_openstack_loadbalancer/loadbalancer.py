@@ -75,6 +75,11 @@ class OSLoadbalancerRequires(Object):
             charm.on[self.relation_name].relation_joined,
             self._on_relation_joined)
 
+    @property
+    def relations(self) -> list:
+        """List relations"""
+        return self.model.relations[self.relation_name]
+
     def _on_relation_joined(self, event: RelationEvent) -> None:
         """Handle relation joined event
 
