@@ -36,6 +36,10 @@ ADMIN_SPACE = "admin"
 INTERNAL_SPACE = "internal"
 
 
+class LoadbalancerRelationBrokenEvent(EventBase):
+    pass
+
+
 class LoadbalancerRelationReadyEvent(EventBase):
     pass
 
@@ -52,6 +56,7 @@ class OSLoadbalancerEvents(ObjectEvents):
     lb_relation_ready = EventSource(LoadbalancerRelationReadyEvent)
     lb_requested = EventSource(LoadbalancerRequestsEvent)
     lb_configured = EventSource(LoadbalancerConfiguredEvent)
+    lb_relation_broken = EventSource(LoadbalancerRelationBrokenEvent)
 
 
 class OSLoadbalancerRequires(Object):
@@ -74,6 +79,9 @@ class OSLoadbalancerRequires(Object):
         self.framework.observe(
             charm.on[self.relation_name].relation_joined,
             self._on_relation_joined)
+        self.framework.observe(
+            charm.on[self.relation_name].relation_broken,
+            self._on_relation_broken)
 
     @property
     def relations(self) -> list:
@@ -87,12 +95,27 @@ class OSLoadbalancerRequires(Object):
         """
         self.on.lb_relation_ready.emit()
 
+    def _on_relation_broken(self, event: RelationEvent) -> None:
+        """Handle relation joined event
+
+        :param event: Event triggering action
+        """
+        self.on.lb_relation_broken.emit()
+
     def _on_relation_changed(self, event: RelationEvent) -> None:
         """Handle relation changed event
 
         :param event: Event triggering action
         """
         self._process_response()
+
+    @property
+    def units(self) -> list:
+        """List all remote units."""
+        units = []
+        for relation in self.model.relations[self.relation_name]:
+            units.extend(relation.units)
+        return units
 
     def _update_relation_data(self, relation_data: dict,
                               service: dict) -> dict:
